@@ -161,4 +161,9 @@ if (!hostLog && !indexDump) {
   console.log('  ? 有日志但没匹配到已知模式，把上面三段日志一起发出来。')
 }
 
-console.log('\n提示：想强制每次都播，把配置里的 "mode" 改成 "always"。\n')
+console.log('\n下一步：')
+console.log('  · 想看完整排查手册 → README「排查」一节')
+console.log('  · 想强制每次都播     → node tools/diagnose.mjs --mode=always')
+console.log('  · 想看更细的日志     → 配置里 "debug": true，重启后再看本诊断')
+console.log('  · 想换个动画试试     → 左下角 ◆ 面板，或改 "animation"')
+console.log('')

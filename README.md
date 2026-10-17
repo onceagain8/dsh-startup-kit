@@ -8,6 +8,29 @@
 
 ---
 
+## 30 秒上手
+
+| 你想做什么 | 从这里开始 |
+|---|---|
+| 先看看效果 | `node tools/preview.mjs` → 打开 <http://127.0.0.1:5599/startup-kit/preview> |
+| 装进桌面端（Windows） | 双击 **`install.cmd`**，然后重启桌面端 |
+| 装进 web profile | `dsh plugin --profile web add link:D:/path/to/dsh-startup-kit` |
+| **它没生效** | `node tools/diagnose.mjs` —— 直接给结论和下一步 |
+| 自己写一支动画 | 复制 `lib/animations/_template.js` → 改个名字 → 刷新预览页 |
+| 改设置 | 左下角 `◆` 面板，或 `~/.dsh/startup-kit.json` |
+
+改完之后要不要重启，取决于你改了什么：
+
+| 改了 | 生效方式 |
+|---|---|
+| `lib/animations/*.js`、`lib/shell.js` | **刷新页面**（`Ctrl+R`） |
+| `lib/index.js`、`lib/client.js`、`package.json` | **重启** DSH |
+
+> 本文档前半部分面向**使用者**（安装、配置、排查），
+> 从「[写一支自己的动画](#写一支自己的动画)」开始面向**开发者**。
+
+---
+
 ## 为什么这样拆
 
 写启动动画最容易出的三种事故，全部由壳兜住：
