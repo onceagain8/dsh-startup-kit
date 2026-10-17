@@ -1,0 +1,11 @@
+# dsh-startup-kit — bundle patch 层
+#
+# 只贡献一行宿主插件。本包**没有** client 半边（不声明 dsh.client），
+# 因为启动界面完全由 Host 侧改写 index.html 来接管，不需要等浏览器插件系统启动。
+#
+# 副作用（这是刻意的）：
+#   · 改 lib/shell.js 或 lib/animations/*.js → **刷新页面**即可生效，不用重启 DSH；
+#   · 改 lib/index.js（宿主注入逻辑）→ 必须重启 DSH。
+- insert:
+    - id: startup-kit
+      name: 'dsh-startup-kit'

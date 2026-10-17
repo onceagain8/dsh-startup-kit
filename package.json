@@ -1,0 +1,36 @@
+{
+  "name": "dsh-startup-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "可插拔的 DeepSeek Harness 启动动画框架：一个稳定的启动壳 + 一组可替换的动画模块。",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "preview": "node tools/preview.mjs",
+    "diagnose": "node tools/diagnose.mjs",
+    "test": "node test/smoke.mjs && node test/inject.mjs && node test/client.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}
