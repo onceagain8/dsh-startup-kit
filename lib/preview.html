@@ -21,6 +21,8 @@
   #dsk-preview-bar input[type=range]{width:120px;accent-color:#ff7500}
   #dsk-preview-bar b{color:#e9edf6;font-weight:400;min-width:52px}
   #dsk-preview-bar .msg{color:#6ee7a8;margin-left:auto}
+  #dsk-preview-bar .fps{color:#8b97ad;min-width:56px;text-align:right}
+  #dsk-preview-bar .fps.bad{color:#ff7500}
   #dsk-preview-bar .hint{color:#5c667a}
 </style>
 </head>
@@ -37,6 +39,7 @@
   </label>
   <button id="pv-replay" type="button">重播</button>
   <button id="pv-apply" type="button">设为默认</button>
+  <span class="fps" id="pv-fps">-- fps</span>
   <span class="hint">Esc 跳过 · 改动画文件后刷新即可</span>
   <span class="msg" id="pv-msg"></span>
 </div>
@@ -49,6 +52,28 @@
   var speed = document.getElementById('pv-speed')
   var speedv = document.getElementById('pv-speedv')
   var msg = document.getElementById('pv-msg')
+  var fpsEl = document.getElementById('pv-fps')
+
+  /* ── 帧率表 ──────────────────────────────────────────────────────────
+   * 每 500ms 统计一次实际帧数。用来判断一支动画在自己机器上
+   * 是"轻松"还是"已经掉帧"——重型动画的调参就靠它。 */
+  ;(function meter() {
+    var frames = 0
+    var last = performance.now()
+    function loop(now) {
+      frames++
+      var dt = now - last
+      if (dt >= 500) {
+        var fps = Math.round((frames * 1000) / dt)
+        fpsEl.textContent = fps + ' fps'
+        fpsEl.classList.toggle('bad', fps < 45)
+        frames = 0
+        last = now
+      }
+      requestAnimationFrame(loop)
+    }
+    requestAnimationFrame(loop)
+  })()
 
   function note(text) {
     msg.textContent = text
@@ -125,7 +150,11 @@
       list.forEach(function (a) {
         var opt = document.createElement('option')
         opt.value = a.id
-        opt.textContent = a.title + '  (' + a.id + ')'
+        var bits = [a.title]
+        if (a.duration) bits.push((a.duration / 1000).toFixed(1) + 's')
+        if (a.complexity) bits.push(a.complexity)
+        opt.textContent = bits.join(' · ') + '  (' + a.id + ')'
+        opt.title = a.description || ''
         if (a.id === cfg.animation) opt.selected = true
         sel.appendChild(opt)
       })

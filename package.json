@@ -19,7 +19,7 @@
   "scripts": {
     "preview": "node tools/preview.mjs",
     "diagnose": "node tools/diagnose.mjs",
-    "test": "node test/smoke.mjs && node test/inject.mjs && node test/client.mjs"
+    "test": "node test/smoke.mjs && node test/inject.mjs && node test/client.mjs && node test/animations.mjs"
   },
   "engines": {
     "node": ">=20"

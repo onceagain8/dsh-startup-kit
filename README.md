@@ -86,13 +86,17 @@ dsh-startup-kit/
 │   ├── logger.js             # 落盘日志
 │   ├── preview.html          # 预览页（选动画 / 调速 / 重播）
 │   └── animations/
-│       ├── fade.js           # 示例：时序驱动
-│       ├── pulse.js          # 示例：CSS 驱动
+│       ├── fade.js           # 简单：时序驱动
+│       ├── pulse.js          # 简单：CSS 驱动
+│       ├── typing.js         # 中等：setup/run/dispose 三段式
+│       ├── parts.js          # 重型：canvas + rAF
 │       └── _template.js      # 模板（下划线开头不进列表）
+├── docs/
+│   └── animation-api.md      # 动画开发文档（契约 / 时长 / 性能 / 自检）
 ├── tools/
 │   ├── preview.mjs           # 独立预览服务器
 │   └── diagnose.mjs          # 诊断：把三份落盘证据拼成结论
-└── test/                     # 12 项断言，全都不需要启动 DSH
+└── test/                     # 18 项断言，全都不需要启动 DSH
 ```
 
 ---
@@ -133,25 +137,42 @@ Windows 上直接双击 **`install.cmd`** 更省事：它内置了 `dsh` 全路�
 
 ## 写一支自己的动画
 
+**完整契约见 [docs/animation-api.md](docs/animation-api.md)。** 这里只放最快的那条路。
+
 复制 `lib/animations/_template.js` → 改成 `my-animation.js` → 刷新预览页 → 下拉里就多一项。
 
 ```js
-/** @title 下拉里显示的名字 */
-export const id = 'my-animation'
-export const title = '我的动画'
+/**
+ * @title 我的动画
+ * @duration 2000
+ * @complexity simple
+ */
+export const meta = {
+  id: 'my-animation',
+  title: '我的动画',
+  description: '一句话说明',
+  duration: 2000,
+  complexity: 'simple'
+}
 
 export async function run(api) {
   const box = document.createElement('div')
   box.textContent = 'HELLO'
   api.stage.appendChild(box)
 
-  await api.wait(1000)   // 可被跳过的等待
+  await api.wait(1400)   // 可被跳过的等待
   api.setProgress(1)
 }
 ```
 
 - `run()` **resolve** → 演完了，壳负责淡出 + 移除 + 解锁
 - `run()` **抛异常** → 壳立刻揭幕，绝不锁屏
+- `setup(api)` / `dispose(api)` 可选：前者建 DOM（不计时），后者清理
+
+### 时长是自报的
+
+`meta.duration` 决定壳的看门狗：`duration / speed + 4000ms`。
+不写就退回配置里的 `watchdogMs`（默认 15s）。想按预算调节奏用 `api.remaining()`。
 
 ### api 一览
 
@@ -160,6 +181,9 @@ export async function run(api) {
 | `api.stage` | `HTMLElement` | 舞台，往这里 `appendChild` |
 | `api.root` | `HTMLElement` | 全屏容器（一般不用碰） |
 | `api.config` | `object` | 只读配置 |
+| `api.meta` | `object` | 你的 `meta` 副本 |
+| `api.duration` | `number` | 自报时长；没报是 0 |
+| `api.elapsed()` / `api.remaining()` | `number` | 已用 / 剩余毫秒 |
 | `api.wait(ms)` | `Promise` | 可被跳过的等待，内部已按 `speed` 缩放 |
 | `api.frame()` | `Promise` | 等一帧 |
 | `api.skip()` | `void` | 请求跳过 |
@@ -167,6 +191,17 @@ export async function run(api) {
 | `api.setProgress(p)` | `void` | `0..1`，驱动底部进度条 |
 | `api.addStyle(css)` | `() => void` | 注入样式，返回移除函数 |
 | `api.isSkipped()` | `boolean` | 已经跳过/收场了吗 |
+
+### 现成的四支，从简到繁
+
+| id | 名字 | 时长 | 复杂度 | 学什么 |
+|---|---|---|---|---|
+| `fade` | 淡入 | 3.6s | simple | 时序驱动：`await` 就是分镜 |
+| `pulse` | 呼吸圆环 | 3.0s | simple | CSS 驱动：循环交给 keyframes |
+| `typing` | 终端打字 | 4.2s | medium | `setup/run/dispose`；细粒度文本更新 |
+| `parts` | 粒子星云 | 5.0s | heavy | canvas + rAF；性能成本在哪 |
+
+预览页底部有**帧率表**，低于 45fps 会变橙——重型动画调参靠它。
 
 ### 三条经验
 

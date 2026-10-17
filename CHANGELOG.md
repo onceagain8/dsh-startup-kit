@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **动画接口 v2**：`meta` / `setup` / `run` / `dispose` 四段式。
+  `meta.duration` 自报时长，壳据此布防看门狗（`duration / speed + 4s`），
+  不再用一个写死的 15s 兜所有动画。
+  `api` 新增 `meta`、`duration`、`elapsed()`、`remaining()`；`dispose()` 在收场时
+  统一调用（正常结束、跳过、抛错都会走到）。
+- **两支新动画**：`typing`（中等，逐字文本 + 三段式）、`parts`（重型，canvas 粒子
+  + 每帧 O(n²) 连线，用来探性能上限）。`fade` / `pulse` 补齐 `meta`。
+- **`docs/animation-api.md`**：完整契约、时长模型、api 表、性能规矩、自检清单。
+- **动画契约测试** `test/animations.mjs`：校验 `run`/`meta`、id 与文件名一致、
+  `duration`/`complexity` 合法，以及**文件头注释与 `meta` 一致**
+  （两份元信息写岔只会表现为"列表显示 4.2s、看门狗按 2s 算"）。
+- **预览页帧率表**：每 500ms 统计一次实际帧率，低于 45fps 变橙，用于重型动画调参。
+  动画下拉现在显示 `标题 · 时长 · 复杂度`。
+
 ### 变更
 
 - **设置页集成摘掉，回到"动画 + 面板"的稳定状态。**
