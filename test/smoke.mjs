@@ -116,6 +116,9 @@ function makeStorage() {
   }
 }
 
+/** replay() 从 /config 重新取到的配置（各用例按需改写） */
+let replayConfig = { animation: 'pulse', speed: 1 }
+
 function makeEnv(config, modules) {
   const html = new El('html')
   const head = new El('head')
@@ -169,7 +172,12 @@ function makeEnv(config, modules) {
     clearTimeout,
     sessionStorage: makeStorage(),
     localStorage: makeStorage(),
-    CustomEvent
+    CustomEvent,
+    // replay() 会重新取配置；测试里用一个可变对象喂它
+    fetch: () =>
+      Promise.resolve({
+        json: () => Promise.resolve({ config: replayConfig, animations: [] })
+      })
   })
 
   new vm.Script(SRC, { filename: 'shell.js' }).runInContext(context)
@@ -197,7 +205,7 @@ const rootGone = (env) => env.document.getElementById('dsk-root') === null
   assert.equal(locked(env), false, '收场后必须解锁滚动')
   assert.equal(has(env, 'startup-kit:handoff'), true, '必须发 handoff 事件')
   assert.equal(has(env, 'startup-kit:done'), true, '必须发 done 事件')
-  console.log('ok   1/4  正常收场：淡出 → 移除 → 解锁')
+  console.log('ok   1/5  正常收场：淡出 → 移除 → 解锁')
 }
 
 /* ── 2. 动画抛错 → 立即揭幕（不淡出） ───────────────────────────────────── */
@@ -213,7 +221,7 @@ const rootGone = (env) => env.document.getElementById('dsk-root') === null
   assert.equal(locked(env), false, '抛错后必须解锁')
   assert.equal(has(env, 'startup-kit:done'), true, '抛错也要发 done')
   assert.equal(has(env, 'startup-kit:handoff'), false, '抛错走瞬拆，不该有淡出')
-  console.log('ok   2/4  动画抛错：立即揭幕，绝不留黑屏')
+  console.log('ok   2/5  动画抛错：立即揭幕，绝不留黑屏')
 }
 
 /* ── 3. 跳过 → 不卡在长等待上 ───────────────────────────────────────────── */
@@ -230,7 +238,7 @@ const rootGone = (env) => env.document.getElementById('dsk-root') === null
   assert.equal(rootGone(env), true, '跳过后 5 秒的等待必须被释放')
   assert.equal(locked(env), false, '跳过后必须解锁')
   assert.equal(has(env, 'startup-kit:done'), true, '跳过后必须发 done')
-  console.log('ok   3/4  跳过：长等待被释放，不必等它自己走完')
+  console.log('ok   3/5  跳过：长等待被释放，不必等它自己走完')
 }
 
 /* ── 4. 看门狗 → 动画永不返回也能收场 ──────────────────────────────────── */
@@ -245,7 +253,30 @@ const rootGone = (env) => env.document.getElementById('dsk-root') === null
   assert.equal(rootGone(env), true, '看门狗必须能拆掉卡死的黑幕')
   assert.equal(locked(env), false, '看门狗收场后必须解锁')
   assert.equal(has(env, 'startup-kit:done'), true, '看门狗收场也要发 done')
-  console.log('ok   4/4  看门狗：动画永不 resolve 也能收场')
+  console.log('ok   4/5  看门狗：动画永不 resolve 也能收场')
+}
+
+/* ── 5. 重播必须重新取配置 ───────────────────────────────────────────────
+ * 回归：replay() 曾经只是把 shell 脚本重新插一遍，读的还是启动时缓存的
+ * window.__DSK__ —— 于是在面板里换了动画，重播出来的还是老的那一支。
+ */
+
+{
+  const env = makeEnv({ animation: 'ok', mode: 'always', speed: 1, allowSkip: true, watchdogMs: 20000 }, {
+    ok: { run: async (api) => { await api.wait(10) } }
+  })
+
+  await sleep(900)
+  // 启动时用的是 ok，不是 pulse
+  assert.equal(env.window.__DSK__.animation, 'ok', '初始配置应当是 ok')
+
+  replayConfig = { animation: 'pulse', speed: 2 }
+  env.window.__DSH_STARTUP_KIT__.replay()
+  await sleep(120)
+
+  assert.equal(env.window.__DSK__.animation, 'pulse', '重播必须重新取配置，而不是沿用旧缓存')
+  assert.equal(env.window.__DSK__.speed, 2, '速度也要跟着更新')
+  console.log('ok   5/5  重播重新取配置（换动画能立刻生效）')
 }
 
 console.log('\n全部通过。')
