@@ -77,7 +77,8 @@
       animation: animation,
       speed: currentSpeed(),
       allowSkip: true,
-      watchdogMs: 20000
+      watchdogMs: 20000,
+      panel: 'never'             // 预览页自己有工具条，不需要再叠一个 ⚙
     }
     window.__DSK_SKIP__ = false
     window.__DSK_LOADED__ = false

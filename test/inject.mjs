@@ -51,7 +51,7 @@ assert.equal(routes.length, 1, '应当只注册一条前缀路由')
 assert.equal(routes[0].kind, 'prefix')
 assert.equal(routes[0].path, '/startup-kit')
 assert.equal(typeof routes[0].handler, 'function')
-console.log('ok   1/3  注册了 /startup-kit 前缀路由')
+console.log('ok   1/4  注册了 /startup-kit 前缀路由')
 
 /* ── 注入 ─────────────────────────────────────────────────────────────── */
 
@@ -72,7 +72,7 @@ assert.equal(html.indexOf('id="dsk-root"') > html.indexOf('<body>'), true, '黑�
 
 // 幂等：同一份 HTML 再注入一次不应重复
 assert.equal(tap(html), html, '对已注入过的 HTML 应当原样返回')
-console.log('ok   2/3  注入内容完整、位置正确、且幂等')
+console.log('ok   2/4  注入内容完整、位置正确、且幂等')
 
 /* ── 转义 ─────────────────────────────────────────────────────────────── */
 
@@ -88,7 +88,24 @@ console.log('ok   2/3  注入内容完整、位置正确、且幂等')
   assert.notEqual(m, null, '应当能定位到内联配置')
   assert.equal(m[1].includes('<'), false, '内联 JSON 里不允许出现裸 <')
   assert.equal(m[1].includes('</script>'), false, '内联 JSON 里不允许出现闭合标签')
-  console.log('ok   3/3  内联 JSON 已转义（< 已变成 \\u003c）')
+  console.log('ok   3/4  内联 JSON 已转义（< 已变成 \\u003c）')
+}
+
+/* ── 配置收敛：脏值不能把开关关掉 ─────────────────────────────────────── */
+
+{
+  const { normalizeConfig, DEFAULTS } = await import('../lib/service.js')
+
+  // 回归：曾经有一次合并把字段写成 {}，truthy 把 {} 判成 false，
+  // 于是 enabled 变 false、插件从此不播，界面看起来却像"没人改过配置"。
+  assert.equal(normalizeConfig({ enabled: {} }).enabled, DEFAULTS.enabled, '空对象不能关掉 enabled')
+  assert.equal(normalizeConfig({ enabled: 'yes' }).enabled, DEFAULTS.enabled, '无法识别的字符串要退回默认')
+  assert.equal(normalizeConfig({ allowSkip: {} }).allowSkip, DEFAULTS.allowSkip, 'allowSkip 同理')
+  assert.equal(normalizeConfig({ enabled: false }).enabled, false, '明确的 false 必须保留')
+  assert.equal(normalizeConfig({ enabled: 'false' }).enabled, false, '字符串 false 也是 false')
+  assert.equal(normalizeConfig({ panel: {} }).panel, DEFAULTS.panel, '脏 panel 退回默认入口策略')
+
+  console.log('ok   4/4  配置收敛：脏值退回默认，不会误关插件')
 }
 
 fs.rmSync(HOME, { recursive: true, force: true })

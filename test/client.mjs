@@ -73,6 +73,8 @@ function makeEnv(config, pre = {}) {
     body,
     documentElement: html,
     createElement: (t) => new El(t),
+    addEventListener() {},
+    removeEventListener() {},
     getElementById(id) {
       let found = null
       const visit = (n) => {
@@ -90,6 +92,10 @@ function makeEnv(config, pre = {}) {
   const win = Object.assign(
     {
       location: { href: 'dsh-app://app/' },
+      addEventListener() {},
+      removeEventListener() {},
+      innerWidth: 1280,
+      innerHeight: 800,
       __ModuleLoader__: {
         registered: [],
         load(reg) {
@@ -140,7 +146,10 @@ const has = (env, id) => env.document.getElementById(id) !== null
 
   const exports = regs[0].factory()
   assert.equal(typeof exports.apply, 'function', '导出里必须有 apply')
-  console.log('ok   1/5  bundle 注册契约正确（id + CJS 工厂 + apply）')
+  // 不声明任何 inject：设置分区那条线已摘下，插件不依赖任何客户端服务，
+  // 这样即使某个服务缺席也不会挡住开场动画
+  assert.equal(exports.inject, undefined, '不该声明 inject')
+  console.log('ok   1/6  bundle 注册契约正确（id + CJS 工厂 + apply）')
 }
 
 /* ── 2. 顶层立刻铺黑幕（不等网络） ─────────────────────────────────────── */
@@ -149,7 +158,7 @@ const has = (env, id) => env.document.getElementById(id) !== null
   const env = makeEnv({ enabled: true })
   assert.equal(has(env, 'dsk-root'), true, '脚本执行的那一刻黑幕就该在')
   assert.equal(env.document.documentElement.classList.contains('dsk-lock'), true, '同时锁滚动')
-  console.log('ok   2/5  顶层已铺好黑幕（消闪关键）')
+  console.log('ok   2/6  顶层已铺好黑幕（消闪关键）')
 }
 
 /* ── 3. 宿主注入过 → 顶层不铺，apply 不做事 ────────────────────────────── */
@@ -159,7 +168,7 @@ const has = (env, id) => env.document.getElementById(id) !== null
   assert.equal(has(env, 'dsk-root'), false, '宿主已接管时不该抢着铺')
   env.win.__ModuleLoader__.registered[0].factory().apply({})
   assert.equal(has(env, 'dsk-root'), false, 'apply 也不该铺')
-  console.log('ok   3/5  宿主已注入时幂等')
+  console.log('ok   3/6  宿主已注入时幂等')
 }
 
 /* ── 4. 自举：黑幕在，apply 后进入取配置流程 ───────────────────────────── */
@@ -175,7 +184,7 @@ const has = (env, id) => env.document.getElementById(id) !== null
   })
   env.win.__ModuleLoader__.registered[0].factory().apply({})
   assert.equal(has(env, 'dsk-root'), true, '自举时黑幕必须在')
-  console.log('ok   4/5  自举保持黑幕并进入取配置流程')
+  console.log('ok   4/6  自举保持黑幕并进入取配置流程')
 }
 
 /* ── 5. 配置说不播 → 拆掉 ─────────────────────────────────────────────── */
@@ -186,7 +195,26 @@ const has = (env, id) => env.document.getElementById(id) !== null
   await new Promise((r) => setTimeout(r, 30))
   assert.equal(has(env, 'dsk-root'), false, '不该播时必须把黑幕拆掉，绝不能留黑屏')
   assert.equal(env.document.documentElement.classList.contains('dsk-lock'), false, '也要解锁')
-  console.log('ok   5/5  enabled=false 时自动拆掉黑幕')
+  console.log('ok   5/6  enabled=false 时自动拆掉黑幕')
+}
+
+/* ── 6. 入口策略：默认不占常驻界面 ─────────────────────────────────────── */
+
+{
+  const base = { enabled: true, mode: 'always', animation: 'fade', speed: 1, watchdogMs: 15000 }
+
+  const boot = makeEnv({ ...base, panel: 'boot' })
+  boot.win.__ModuleLoader__.registered[0].factory().apply({})
+  await new Promise((r) => setTimeout(r, 30))
+  assert.equal(has(boot, 'dsk-panel'), true, '面板本身要挂上（等 ⚙ 或快捷键）')
+  assert.equal(has(boot, 'dsk-fab'), false, "'boot' 模式不该出现常驻按钮")
+
+  const always = makeEnv({ ...base, panel: 'always' })
+  always.win.__ModuleLoader__.registered[0].factory().apply({})
+  await new Promise((r) => setTimeout(r, 30))
+  assert.equal(has(always, 'dsk-fab'), true, "'always' 模式才有常驻按钮")
+
+  console.log('ok   6/6  入口策略：默认不占常驻界面')
 }
 
 console.log('\n全部通过。')

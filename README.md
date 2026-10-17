@@ -17,7 +17,7 @@
 | 装进 web profile | `dsh plugin --profile web add link:D:/path/to/dsh-startup-kit` |
 | **它没生效** | `node tools/diagnose.mjs` —— 直接给结论和下一步 |
 | 自己写一支动画 | 复制 `lib/animations/_template.js` → 改个名字 → 刷新预览页 |
-| 改设置 | 左下角 `◆` 面板，或 `~/.dsh/startup-kit.json` |
+| 改设置 | 开场时点右下角 `⚙`，或按 `Ctrl+Alt+S` |
 
 改完之后要不要重启，取决于你改了什么：
 
@@ -176,15 +176,35 @@ export async function run(api) {
 
 ---
 
-## 设置面板
+## 设置
 
-左下角有个 **`◆`** 小按钮，点开可以：切动画、调速度、改播放策略、开关启用、重播开场。改完立即生效，写进 `~/.dsh/startup-kit.json`。
+两个入口，改的都是同一份 `~/.dsh/startup-kit.json`，改完立即生效：
 
-不想看到它：配置里 `"panel": false`。
+| 时机 | 入口 |
+|---|---|
+| 开场动画期间 | 右下角 `SKIP` 左边多一个 **`⚙`**，播完随黑幕一起消失 |
+| 任何时候 | **`Ctrl+Alt+S`** 打开浮动面板 |
 
-> 为什么不用 DSH 的原生设置卡片：那条路要求 Host 侧用 `@deepseek-ai/dsh-settings`
-> 注册命名空间、Client 侧用 React 注册进 `settings.plugin.item` 插槽，而且卡片
-> 只有在 Host 服务了该命名空间时才渲染。对一个小插件来说依赖太重。
+**默认不常驻任何 UI**——角落是侧栏「…」和发送按钮的地盘，常驻按钮会挡住它们。
+想要一个常驻按钮，把配置改成 `"panel": "always"`（左下角、**可拖动**、位置会记住）；
+完全不要入口用 `"panel": "never"`。
+
+> **设置页集成：暂缓，但结论记在这里。**
+>
+> 当前这一版 DSH（桌面端与 `dsh web` 共用同一份 `app.asar`）**没有**可放第三方配置的
+> 设置界面：`@deepseek-ai/dsh-client-ui-settings-plugins` 只注册了一个 `plugins` 分区，
+> 内容是 `ui-settings-plugin-inventory` 提供的只读「内置插件」列表。
+> 既没有 `settings.plugin.item` 插槽，也不消费插件的 `Config` schema
+> （`SettingsProvider.describe()` 会为带 schema 的 entry 生成表单，但客户端没有消费者）。
+>
+> 唯一可用的入口是 `settings.section`（账号、模型、智能体预设都挂在这上面），
+> 但它要求：
+> - 客户端 bundle 声明 `inject: ['slots']`（Cordis 对未声明的服务是硬拦截，
+>   `ctx.get('slots')` 同样抛 `cannot get property "slots" without inject`）
+> - 用 React 渲染，且 `settings.section` 的注册失败会连累整个设置页
+>
+> 考虑到收益（八个字段）与风险（动画主流程跟着一起挂）不成比例，
+> 这个方向**暂时摘掉**，等主流程稳定后单独做。
 
 ---
 
@@ -201,7 +221,7 @@ export async function run(api) {
   "allowSkip": true,
   "watchdogMs": 15000,
   "debug": false,
-  "panel": true
+  "panel": "boot"
 }
 ```
 
@@ -214,7 +234,7 @@ export async function run(api) {
 | `allowSkip` | 是否响应 `Esc` 和跳过按钮 |
 | `watchdogMs` | 超过这个时间还没收场就强行揭幕，`2000 ~ 120000` |
 | `debug` | 详细日志：连每个请求都记（平时关掉，免得把有用信息淹掉） |
-| `panel` | 左下角设置面板 |
+| `panel` | 设置入口：`boot` 只在开场期间显示 ⚙ · `always` 常驻可拖动按钮 · `never` 只留快捷键（旧的 `true`/`false` 仍兼容） |
 
 ---
 
